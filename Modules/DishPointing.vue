@@ -2,9 +2,8 @@
     <div class="row">
         <div class="col-6">
             <p class="m-0 text-muted">Select satellite:</p>
-            <select id="" class="form-select" v-model="selectedSateliteId">
-                <option value="1210">36E</option>
-                <option value="1260">14W</option>
+            <select id="" class="form-select" v-model="selectedSateliteId" @change="setSat()">
+                <option :value="sat.sat_id" v-for="sat in availableSatellites">{{sat.sat_degree}}{{sat.direction}} {{sat.sat_name}}</option>
             </select>
             <p class="m-0 text-muted">Transponder:</p>
             <select id="" class="form-select" @change="setTransponder()" v-model="selectedTransponder">
@@ -46,25 +45,34 @@ export default {
     data(){
         return {
             ip:"",
-            selectedSateliteId:1260,
+            selectedSateliteId:null,
             selectedTransponder:0,
             lnbV:0,
             SNR:0,
             LMSNR:0,
             LNBAmper:0,
+            availableSatellites:[],
             availableServices:[],
             transponders:[],
             transponders2:[],
         }
     },
     methods:{
+        setSat(){
+            let _this = this;
+            fetch("http://"+this.ip+"/public?command=returnTPList&sat_id="+this.selectedSateliteId).then(response=>response.json()).then(response=> {
+                this.transponders = response.tp_list;
+                response.tp_list.forEach(function (item) {
+                    _this.transponders2[item.id] = item;
+                })
+            });
+        },
         setTransponder(){
             let transponderId = this.selectedTransponder
             let freq = this.transponders2[transponderId].freq-9750;
             let sr = this.transponders2[transponderId].sr;
             let pol = this.transponders2[transponderId].polarity;
             fetch("http://"+this.ip+"/public?command=initSmartSNR&state=on&mode=snr&freq="+freq+"&sr="+sr+"&pol="+pol+"&tone=0&smart_lnb_enabled=0&diseqc_hex=E01038F4");
-
         }
     },
     mounted() {
@@ -75,13 +83,10 @@ export default {
         }
         let _this = this;
         fetch("http://"+this.ip+"/public?command=commonEvent");
-        fetch("http://"+this.ip+"/public?command=returnTPList&sat_id="+this.selectedSateliteId).then(response=>response.json()).then(response=> {
-            _this.transponders = response.tp_list;
-            response.tp_list.forEach(function (item) {
-                _this.transponders2[item.id] = item;
-
-            })
+        fetch("http://"+this.ip+"/public?command=returnSATList").then(response=>response.json()).then(response=> {
+            this.availableSatellites = response.sat_list;
         });
+
         const evtSource = new EventSource("http://"+this.ip+"/public?command=startEvents" );
         evtSource.addEventListener("update",function (e){
             let parsedData = JSON.parse(e.data);
