@@ -45,6 +45,7 @@ export default {
     name: "DishPointing",
     data(){
         return {
+            ip:"",
             selectedSateliteId:1260,
             selectedTransponder:0,
             lnbV:0,
@@ -62,22 +63,26 @@ export default {
             let freq = this.transponders2[transponderId].freq-9750;
             let sr = this.transponders2[transponderId].sr;
             let pol = this.transponders2[transponderId].polarity;
-            //http://127.0.0.1:8008/public?command=initSmartSNR&state=on&mode=snr&freq=1877&sr=2984&pol=1&tone=0&smart_lnb_enabled=0&diseqc_hex=E01038F4
-            fetch("http://127.0.0.1:8008/public?command=initSmartSNR&state=on&mode=snr&freq="+freq+"&sr="+sr+"&pol="+pol+"&tone=0&smart_lnb_enabled=0&diseqc_hex=E01038F4");
+            fetch("http://"+this.ip+"/public?command=initSmartSNR&state=on&mode=snr&freq="+freq+"&sr="+sr+"&pol="+pol+"&tone=0&smart_lnb_enabled=0&diseqc_hex=E01038F4");
 
         }
     },
     mounted() {
+        this.ip = localStorage.getItem("ip");
+        if(this.ip===null){
+            this.$router.push("/connect");
+            return;
+        }
         let _this = this;
-        fetch("http://127.0.0.1:8008/public?command=commonEvent");
-        fetch("http://127.0.0.1:8008/public?command=returnTPList&sat_id="+this.selectedSateliteId).then(response=>response.json()).then(response=> {
+        fetch("http://"+this.ip+"/public?command=commonEvent");
+        fetch("http://"+this.ip+"/public?command=returnTPList&sat_id="+this.selectedSateliteId).then(response=>response.json()).then(response=> {
             _this.transponders = response.tp_list;
             response.tp_list.forEach(function (item) {
                 _this.transponders2[item.id] = item;
 
             })
         });
-        const evtSource = new EventSource("http://127.0.0.1:8008/public?command=startEvents" );
+        const evtSource = new EventSource("http://"+this.ip+"/public?command=startEvents" );
         evtSource.addEventListener("update",function (e){
             let parsedData = JSON.parse(e.data);
             if(parsedData.lnb_voltage!==undefined){
@@ -94,7 +99,6 @@ export default {
                 }
             }
         });
-        //{"lock": 0, "mode": 0, "tune_mode": 0, "carrier_offset": 65535, "lpg": 4484, "snr": 9.0, "lm_snr": 0.0, "alfa": 360.0, "beta": 360.0, "gamma": 360.0, "version": "0000","lnb3d_voltage": 0, "lnb_current": 122, "lnb_voltage": 13608, "psu_voltage": 11910, "scan_status": "SCAN_WAITING_LOCK"}
     }
 }
 </script>

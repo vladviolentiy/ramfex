@@ -16,7 +16,7 @@
         </div>
         <div class="col-3">
             <p class="m-0">Choose satellite:</p>
-            <select id="availableSattelites" class="form-select" @change="changeSat()" v-model="chooseSat">
+            <select id="availableSatellites" class="form-select" @change="changeSat()" v-model="chooseSat">
                 <option value="0">All</option>
                 <option :value="sat" v-for="sat in availableSatelites">{{satList[sat].sat_degree}}{{satList[sat].direction}} {{satList[sat].sat_name}}</option>
             </select>
@@ -68,19 +68,24 @@ export default {
         }
     },
     mounted() {
+        let ip = localStorage.getItem("ip");
+        if(ip===null){
+            this.$router.push("/connect");
+            return;
+        }
         let _this = this;
-        fetch("http://127.0.0.1:8008/public?command=returnSATList").then(response=>response.json()).then(response=>{
+        fetch("http://"+ip+"/public?command=returnSATList").then(response=>response.json()).then(response=>{
             response.sat_list.forEach(function (item) {
                 _this.satList[item.sat_id] = item
             })
         });
-        fetch("http://127.0.0.1:8008/public?command=channelList").then(response=>response.json()).then(response=>{
+        fetch("http://"+ip+"/public?command=channelList").then(response=>response.json()).then(response=>{
             this.channelList = response.channel_list;
             this.channelList.forEach(function (item){
                 if(_this.availableSatelites.indexOf(item.id.sat)===-1) _this.availableSatelites.push(item.id.sat);
             });
             this.availableSatelites.forEach(function (item){
-                fetch("http://127.0.0.1:8008/public?command=returnTPList&sat_id="+item).then(response=>response.json()).then(response=> {
+                fetch("http://"+ip+"/public?command=returnTPList&sat_id="+item).then(response=>response.json()).then(response=> {
                     response.tp_list.forEach(function (item) {
                         _this.tpTable[item.id] = item;
                     })
